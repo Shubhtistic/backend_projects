@@ -13,7 +13,7 @@ class ShipmentStatus(str, Enum):  # using str, enum makes it behave like enum
 class Shipment(SQLModel, table=True):
     __tablename__ = "shipment"
 
-    id: UUID = Field(default_factory=uuid4)
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
     content: str = Field(max_length=50)
     weight: float
     destination: int
