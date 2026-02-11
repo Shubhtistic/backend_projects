@@ -1,6 +1,6 @@
 from enum import Enum
-from sqlmodel import SQLModel, Field
-from datetime import datetime
+from sqlmodel import SQLModel, Field, Column, DateTime
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4, UUID
 
 
@@ -17,4 +17,11 @@ class Shipment(SQLModel, table=True):
     content: str = Field(max_length=50)
     weight: float
     destination: int
-    estimated_delivery: datetime
+    status: ShipmentStatus = Field(default=ShipmentStatus.Pending)
+
+    estimated_delivery: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=5),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    # # sa_column tells sqlodel to use a specific SQLAlchemy column type
+    # DateTime(timezone=True) creates a 'TIMESTAMPTZ' column in Postgres
