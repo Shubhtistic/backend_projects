@@ -1,3 +1,4 @@
+from typing import Optional
 from app.database.db_models import ShipmentStatus, Field, datetime
 from pydantic import BaseModel
 
@@ -16,3 +17,11 @@ class ReadShipment(BaseShipment):
 
 class CreateShipment(BaseShipment):
     pass
+
+
+class UpdateShipment(BaseModel):
+    content: Optional[str]
+    weight: Optional[float]
+    destination: Optional[int]
+    status: Optional[ShipmentStatus]
+    estimated_delivery: Optional[datetime]
