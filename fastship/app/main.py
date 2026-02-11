@@ -8,7 +8,7 @@ from app.api_routes import shipment
 
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app: FastAPI):
     async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
     yield
