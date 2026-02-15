@@ -2,6 +2,7 @@ from enum import Enum
 from sqlmodel import SQLModel, Field, Column, DateTime
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4, UUID
+from pydantic import EmailStr
 
 
 class ShipmentStatus(str, Enum):  # using str, enum makes it behave like enum
@@ -11,7 +12,7 @@ class ShipmentStatus(str, Enum):  # using str, enum makes it behave like enum
 
 
 class Shipment(SQLModel, table=True):
-    __tablename__ = "shipment"
+    __tablename__ = "shipment"  # if not mentioned defaults to class name in lowercase
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     content: str = Field(max_length=50)
@@ -25,3 +26,10 @@ class Shipment(SQLModel, table=True):
     )
     # # sa_column tells sqlodel to use a specific SQLAlchemy column type
     # DateTime(timezone=True) creates a 'TIMESTAMPTZ' column in Postgres
+
+
+class Seller(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    name: str
+    email: EmailStr = Field(unique=True)
+    hashed_password: str
