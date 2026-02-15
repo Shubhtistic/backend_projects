@@ -15,7 +15,7 @@ from app.config import jwt_settings
 
 from app.dependancies.auth import CurrentUserDep
 
-router = APIRouter(prefix="/Auth")
+router = APIRouter(prefix="/auth")
 
 
 @router.post("/register", response_model=ReadUser)

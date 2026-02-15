@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 # OAUTH2PasswordBearer -> inbuilt fastapi to check if header contains the jwt token if not the 401 error
 
 
-oauth2 = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2 = OAuth2PasswordBearer(tokenUrl="auth/login")
 # tokenUrl="login"
 # This is for the Docs (/docs page).
 # It tells Swagger UI: "If the user isn't logged in, send them to the /login endpoint to get a token."
