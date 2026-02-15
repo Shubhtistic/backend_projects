@@ -24,7 +24,7 @@ class Shipment(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=5),
         sa_column=Column(DateTime(timezone=True)),
     )
-    # # sa_column tells sqlodel to use a specific SQLAlchemy column type
+    # # sa_column tells sqlmodel to use a specific SQLAlchemy column type
     # DateTime(timezone=True) creates a 'TIMESTAMPTZ' column in Postgres
 
 
