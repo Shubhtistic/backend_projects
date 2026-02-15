@@ -49,7 +49,7 @@ async def register_user(user: CreateUser, db: DbSessionDep):
 
 
 @router.post("/login")
-async def lgin(
+async def login_user(
     db: DbSessionDep,
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
