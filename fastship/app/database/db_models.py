@@ -33,3 +33,22 @@ class Seller(SQLModel, table=True):
     name: str
     email: EmailStr = Field(unique=True)
     hashed_password: str
+
+
+class RefreshToken(SQLModel, table=True):
+    __tablename__ = "refresh_token"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+
+    user_id: UUID = Field(foreign_key="seller.id", index=True)
+
+    token_hash: str
+
+    expires_at: datetime = Field(sa_column=Column(DateTime(timezone=True)))
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+
+    revoked: bool = Field(default=False)
