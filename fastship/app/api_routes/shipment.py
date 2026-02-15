@@ -4,12 +4,15 @@ from sqlalchemy.future import select
 from sqlalchemy import delete
 from app.schemas.shipment import CreateShipment, ReadShipment, UpdateShipment
 from app.database.db_models import Shipment
+from app.dependancies.auth import CurrentUserDep
 
 router = APIRouter(prefix="/shipment")
 
 
 @router.post("/create", response_model=ReadShipment)
-async def create_shipment(shipment: CreateShipment, db: DbSessionDep):
+async def create_shipment(
+    user: CurrentUserDep, shipment: CreateShipment, db: DbSessionDep
+):
 
     # first lets create schema to python dict
     data = shipment.model_dump()
@@ -26,7 +29,7 @@ async def create_shipment(shipment: CreateShipment, db: DbSessionDep):
 
 
 @router.get("/{shipment_id}", response_model=ReadShipment)
-async def get_shipment(shipment_id: str, db: DbSessionDep):
+async def get_shipment(user: CurrentUserDep, shipment_id: str, db: DbSessionDep):
 
     query = select(Shipment).where(
         Shipment.id == shipment_id
@@ -45,7 +48,10 @@ async def get_shipment(shipment_id: str, db: DbSessionDep):
 
 @router.patch("/{shipment_id}", response_model=ReadShipment)
 async def update_shipment(
-    shipment_id: str, shipment_update: UpdateShipment, db: DbSessionDep
+    user: CurrentUserDep,
+    shipment_id: str,
+    shipment_update: UpdateShipment,
+    db: DbSessionDep,
 ):
 
     query = select(Shipment).where(
@@ -82,7 +88,7 @@ async def update_shipment(
 
 
 @router.delete("/{shipment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_shipment(shipment_id: str, db: DbSessionDep):
+async def delete_shipment(user: CurrentUserDep, shipment_id: str, db: DbSessionDep):
 
     # easy approach we can do using sqlalchemy
     # prefer this as does a single db operation -> delete
