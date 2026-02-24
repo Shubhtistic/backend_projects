@@ -18,7 +18,7 @@ class Account(SQLModel, table=True):
     hashed_password: str
 
     seller: "Seller" = Relationship(back_populates="account")
-    delivery_partner: "DeliveryPartener" = Relationship(back_populates="account")
+    delivery_partner: "DeliveryPartner" = Relationship(back_populates="account")
     refresh_tokens: list["RefreshToken"] = Relationship(
         back_populates="account", sa_relationship_kwargs={"cascade": "all, delete"}
     )
@@ -32,10 +32,10 @@ class Seller(SQLModel, table=True):
     shipment: list["Shipment"] = Relationship(back_populates="seller")
 
 
-class DeliveryPartener(SQLModel, table=True):
+class DeliveryPartner(SQLModel, table=True):
     __tablename__ = "delivery_partner"
 
-    id: UUID = Field(foreign_key="account.id", primary_key=True)
+    delivery_partner_id: UUID = Field(foreign_key="account.id", primary_key=True)
 
     account: Account = Relationship(back_populates="delivery_partner")
 
@@ -62,11 +62,13 @@ class Shipment(SQLModel, table=True):
     # DateTime(timezone=True) creates a 'TIMESTAMPTZ' column in Postgres
 
     seller_id: UUID = Field(foreign_key="seller.seller_id")
-    delivery_partner_id: UUID = Field(foreign_key="delivery_partner.id")
+    delivery_partner_id: UUID = Field(
+        foreign_key="delivery_partner.delivery_partner_id"
+    )
 
     # relationship
     seller: "Seller" = Relationship(back_populates="shipment")
-    delivery_partner: "DeliveryPartener" = Relationship(back_populates="shipment")
+    delivery_partner: "DeliveryPartner" = Relationship(back_populates="shipment")
 
 
 class RefreshToken(SQLModel, table=True):
