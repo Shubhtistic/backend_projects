@@ -219,4 +219,4 @@ async def logout(
 
 @router.get("/me", response_model=ReadUser)
 async def current_user(user: CurrentUserDep):
-    return user
+    return user.account  # return the orm object inside user class
