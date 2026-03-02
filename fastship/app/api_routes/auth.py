@@ -6,7 +6,8 @@ from app.dependancies.db_dependancy import DbSessionDep
 from app.dependancies.auth import CurrentUserDep
 from app.schemas.user_auth import CreateUser, ReadUser
 from sqlalchemy.future import select
-from app.database.db_models import Seller, RefreshToken
+from sqlalchemy import join, delete
+from app.database.db_models import Account, Seller, RefreshToken, DeliveryPartner
 from app.security.utils import verify_hash_password, generate_hash
 from app.security.jwt import create_access_token
 from app.security.refresh_token import (
@@ -15,7 +16,7 @@ from app.security.refresh_token import (
     hash_refresh_token,
 )
 from app.schemas.user_auth import RefreshRequest, LogoutRequest
-
+from app.schemas.enums import UserRole
 
 router = APIRouter(prefix="/auth")
 
@@ -25,10 +26,8 @@ async def register_user(user: CreateUser, db: DbSessionDep):
     ## check if email already exists
 
     normalized_email = user.email.lower()
-    qry = select(Seller).where(Seller.email == normalized_email)
-
-    res = await db.execute(qry)
-    existing_seller = res.scalar_one_or_none()
+    qry = select(Account).where(Account.email == normalized_email)
+    existing_seller = (await db.execute(qry)).scalar_one_or_none()
     if existing_seller is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="the user already exists"
@@ -40,14 +39,15 @@ async def register_user(user: CreateUser, db: DbSessionDep):
     # ## convert pydantic schema to db
 
     ## make email lowercase to avoid any issue
-    new_seller = Seller(
+    new_acc = Account(
         name=user.name, email=normalized_email, hashed_password=hashed_password
     )
-    db.add(new_seller)
-    await db.commit()
-    await db.refresh(new_seller)
 
-    return new_seller
+    db.add(new_acc)
+    await db.commit()
+    await db.refresh(new_acc)
+
+    return new_acc
 
 
 @router.post("/login")
@@ -57,8 +57,22 @@ async def login_user(
 ):
     normalized_email = form_data.username.lower()
 
-    query = select(Seller).where(Seller.email == normalized_email)
-    user = (await db.execute(query)).scalar_one_or_none()
+    query = (
+        select(
+            Account.id,
+            Account.email,
+            Account.hashed_password,
+            Seller.seller_id,
+            DeliveryPartner.delivery_partner_id,
+        )
+        .outerjoin(Seller, Account.id == Seller.seller_id)
+        .outerjoin(DeliveryPartner, Account.id == DeliveryPartner.delivery_partner_id)
+        .where(Account.email == normalized_email)
+    )
+
+    user = (await db.execute(query)).first()
+    # what first does -> if no rows then returns None
+    # if rows found then a orm row object
 
     if user is None or not verify_hash_password(
         form_data.password, user.hashed_password
@@ -68,8 +82,21 @@ async def login_user(
             detail="Either email or password is incorrect",
         )
 
+    if (user.seller_id is None) and (user.delivery_partner_id is None):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User has no role"
+        )
+    # creates roles list
+    roles: list[str] = []  # become a json array in response
+
+    if user.seller_id is not None:
+        roles.append(UserRole.SELLER)
+
+    if user.delivery_partner_id is not None:
+        roles.append(UserRole.DELIVERY_PARTNER)
+
     # create a jwt access tokn
-    access_token = create_access_token(subject=user.email)
+    access_token = create_access_token(subject=str(user.id), roles=roles)
 
     raw_refresh_token = create_refresh_token()
 
@@ -79,7 +106,7 @@ async def login_user(
 
     # add refresh token in db
     refresh_token_obj = RefreshToken(
-        user_id=user.id,
+        account_id=user.id,
         token_hash=hashed_refresh_token,
         expires_at=refresh_expiry,
     )
@@ -102,7 +129,10 @@ async def refresh_token(
 ):
     hashed_token = hash_refresh_token(request.refresh_token)
 
-    query = select(RefreshToken).where(RefreshToken.token_hash == hashed_token)
+    # lets get the whole 'refreshtoken' orm object as it has less columns and will make it easy to delete also
+    query = select(RefreshToken).where(hashed_token == RefreshToken.token_hash)
+    ## if accound id is invalid -> no rows (None)
+
     token_obj = (await db.execute(query)).scalar_one_or_none()
 
     if token_obj is None:
@@ -122,38 +152,44 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token expired",
         )
-
-    user_query = select(Seller).where(Seller.id == token_obj.user_id)
-    user = (await db.execute(user_query)).scalar_one_or_none()
-
-    # what if user is None
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-
-    # Rotate: delete old refresh token
+    acc_id = token_obj.account_id
     await db.delete(token_obj)
 
     # Create new tokens
+    # lets fetch account + roles from db again, as we cant jwt (maybe be tampered or expired)
+    query = (
+        select(Account.id, Seller.seller_id, DeliveryPartner.delivery_partner_id)
+        .outerjoin(Seller, Account.id == Seller.seller_id)
+        .outerjoin(DeliveryPartner, Account.id == DeliveryPartner.delivery_partner_id)
+        .where(Account.id == acc_id)
+    )
+    res = (await db.execute(query)).first()
+    if res is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Refresh Token / User",
+        )
+    roles: list[str] = []
+    if res.seller_id is not None:
+        roles.append(UserRole.SELLER)
+    if res.delivery_partner_id is not None:
+        roles.append(UserRole.DELIVERY_PARTNER)
 
-    new_access_token = create_access_token(subject=user.email)
+    # create jwt tokens
+    jwt_token = create_access_token(subject=str(res.id), roles=roles)
     raw_refresh_token = create_refresh_token()
     hashed_refresh_token = hash_refresh_token(raw_refresh_token)
-    refresh_expiry = get_refresh_token_expiry()
+    expires_at = get_refresh_token_expiry()
 
-    new_refresh_obj = RefreshToken(
-        user_id=user.id,
-        token_hash=hashed_refresh_token,
-        expires_at=refresh_expiry,
+    add_refresh_token = RefreshToken(
+        account_id=res.id, token_hash=hashed_refresh_token, expires_at=expires_at
     )
-
-    db.add(new_refresh_obj)
+    db.add(add_refresh_token)
     await db.commit()
+    await db.refresh(add_refresh_token)
 
     return {
-        "access_token": new_access_token,
+        "access_token": jwt_token,
         "refresh_token": raw_refresh_token,
         "token_type": "bearer",
     }
