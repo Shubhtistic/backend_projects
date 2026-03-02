@@ -3,31 +3,44 @@ from fastapi import Depends, HTTPException, status
 from app.dependancies.db_dependancy import DbSessionDep
 from app.security.jwt import decode_jwt
 from sqlalchemy.future import select
-from app.database.db_models import Seller
-
+from app.database.db_models import Account
+from app.schemas.enums import UserRole
 from fastapi.security import OAuth2PasswordBearer
-
-# OAUTH2PasswordBearer -> inbuilt fastapi to check if header contains the jwt token if not the 401 error
 
 
 oauth2 = OAuth2PasswordBearer(tokenUrl="auth/login")
-# tokenUrl="login"
-# This is for the Docs (/docs page).
-# It tells Swagger UI: "If the user isn't logged in, send them to the /login endpoint to get a token."
+
+
+class AuthUser:
+    def __init__(self, account: Account, roles: list[UserRole]):
+        self.account = account
+        self.roles = roles
 
 
 async def current_user(db: DbSessionDep, token: str = Depends(oauth2)):
 
-    res = decode_jwt(token)
-    email = res.get("sub")
+    payload = decode_jwt(token)
 
-    qry = select(Seller).where(Seller.email == email)
-    ans = (await db.execute(qry)).scalar_one_or_none()
-    if ans is None:
+    account_id = payload.get("sub")
+    roles = payload.get("roles", [])
+
+    if account_id is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="This user Does not exist"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
         )
-    return ans
+
+    # single DB hit
+    qry = select(Account).where(Account.id == account_id)
+    account = (await db.execute(qry)).scalar_one_or_none()
+
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User does not exist",
+        )
+
+    return AuthUser(account=account, roles=roles)
 
 
-CurrentUserDep = Annotated[Seller, Depends(current_user)]
+CurrentUserDep = Annotated[AuthUser, Depends(current_user)]
