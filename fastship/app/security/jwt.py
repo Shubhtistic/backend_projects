@@ -4,7 +4,7 @@ from jose import jwt, JWTError
 from app.config import jwt_settings
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, roles: list) -> str:
     """
     genearates a short duration jwt token
     """
@@ -14,7 +14,8 @@ def create_access_token(subject: str) -> str:
     )
 
     payload = {
-        "sub": subject,
+        "sub": str(subject),
+        "roles": roles,
         "exp": expire,
     }
 
