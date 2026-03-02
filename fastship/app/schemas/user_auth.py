@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr
 class BaseUser(BaseModel):
     name: str
     email: EmailStr
+    model_config = {"from_attributes": True}
 
 
 class CreateUser(BaseUser):
