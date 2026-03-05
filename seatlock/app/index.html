@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SeatLock API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080b10;
+      --surface:   #0d1117;
+      --border:    rgba(255,255,255,0.07);
+      --border-hi: rgba(255,255,255,0.14);
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --accent:    #00e5ff;
+      --accent2:   #7c3aed;
+      --accent3:   #f97316;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #eab308;
+      --glow-c:    rgba(0,229,255,0.18);
+      --glow2-c:   rgba(124,58,237,0.15);
+      --bebas:     'Bebas Neue', sans-serif;
+      --mono:      'DM Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── GLOWING ORBS ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: orbFloat 12s ease-in-out infinite;
+    }
+    .orb-1 {
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, var(--glow-c), transparent 70%);
+      top: -160px; left: -100px;
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, var(--glow2-c), transparent 70%);
+      bottom: 10%; right: -120px;
+      animation-delay: -5s;
+    }
+    .orb-3 {
+      width: 260px; height: 260px;
+      background: radial-gradient(circle, rgba(249,115,22,0.10), transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: -9s;
+    }
+
+    @keyframes orbFloat {
+      0%,100% { transform: translateY(0px) scale(1); }
+      50%      { transform: translateY(-40px) scale(1.06); }
+    }
+    .orb-2 { animation-name: orbFloat2; }
+    @keyframes orbFloat2 {
+      0%,100% { transform: translateY(0px) scale(1); }
+      50%      { transform: translateY(30px) scale(0.95); }
+    }
+
+    /* ── WRAPPER ── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0;
+      z-index: 100;
+      background: rgba(8,11,16,0.75);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-logo {
+      font-family: var(--bebas);
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-shadow: 0 0 14px var(--accent);
+    }
+    .nav-logo span { color: var(--text); }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34,197,94,0.10);
+      border: 1px solid rgba(34,197,94,0.30);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      animation: fadeSlideDown .6s ease both;
+    }
+    .pulse-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .4; transform: scale(1.5); }
+    }
+
+    .hero-title {
+      font-family: var(--bebas);
+      font-size: clamp(72px, 12vw, 138px);
+      line-height: 0.92;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      animation: fadeSlideDown .7s .1s ease both;
+    }
+    .hero-title .accent-word {
+      color: var(--accent);
+      text-shadow: 0 0 40px rgba(0,229,255,0.35), 0 0 80px rgba(0,229,255,0.15);
+    }
+    .hero-subtitle {
+      margin-top: 22px;
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 540px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.8;
+      animation: fadeSlideDown .7s .2s ease both;
+    }
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 36px;
+      animation: fadeSlideDown .7s .3s ease both;
+    }
+    .hero-meta-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
+    }
+    .hero-meta-item svg { opacity: .55; }
+    .divider-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); opacity: .4; }
+
+    /* ── SECTION ── */
+    section { padding: 72px 0; }
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-family: var(--bebas);
+      font-size: 42px;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: 40px;
+    }
+
+    /* ── PHASE CARDS ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: linear-gradient(135deg, rgba(13,17,23,0.9), rgba(13,17,23,0.6));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+      animation: fadeSlideUp .6s ease both;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .card:nth-child(1)::before { background: radial-gradient(circle at 20% 20%, rgba(0,229,255,0.06), transparent 60%); }
+    .card:nth-child(2)::before { background: radial-gradient(circle at 20% 20%, rgba(124,58,237,0.08), transparent 60%); }
+    .card:nth-child(3)::before { background: radial-gradient(circle at 20% 20%, rgba(249,115,22,0.07), transparent 60%); }
+    .card:hover::before { opacity: 1; }
+    .card:hover {
+      border-color: var(--border-hi);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .card:nth-child(1) { animation-delay: .1s; }
+    .card:nth-child(2) { animation-delay: .2s; }
+    .card:nth-child(3) { animation-delay: .3s; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .card:nth-child(1) .card-icon { background: rgba(0,229,255,0.10); border: 1px solid rgba(0,229,255,0.20); }
+    .card:nth-child(2) .card-icon { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); }
+    .card:nth-child(3) .card-icon { background: rgba(249,115,22,0.10); border: 1px solid rgba(249,115,22,0.20); }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 100px;
+      border: 1px solid;
+    }
+    .tag-progress {
+      color: var(--accent);
+      background: rgba(0,229,255,0.08);
+      border-color: rgba(0,229,255,0.25);
+      animation: tagGlow 2s ease-in-out infinite;
+    }
+    @keyframes tagGlow {
+      0%,100% { box-shadow: 0 0 0 rgba(0,229,255,0); }
+      50%      { box-shadow: 0 0 10px rgba(0,229,255,0.25); }
+    }
+    .tag-pending {
+      color: var(--muted);
+      background: rgba(100,116,139,0.08);
+      border-color: rgba(100,116,139,0.20);
+    }
+    .card-title {
+      font-family: var(--bebas);
+      font-size: 22px;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+    .card-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 18px 0;
+    }
+    .card-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .card-items li {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-items li::before {
+      content: '';
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .card:nth-child(1) .card-items li::before { background: var(--accent); }
+    .card:nth-child(2) .card-items li::before { background: var(--accent2); }
+    .card:nth-child(3) .card-items li::before { background: var(--accent3); }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(13,17,23,0.8);
+    }
+    .table-header {
+      display: grid;
+      grid-template-columns: 90px 1fr 220px 80px;
+      padding: 12px 24px;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255,255,255,0.025);
+      border-bottom: 1px solid var(--border);
+    }
+    .table-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 220px 80px;
+      padding: 14px 24px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      transition: background .2s;
+      animation: fadeSlideUp .5s ease both;
+    }
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: rgba(255,255,255,0.025); }
+
+    .method {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      padding: 3px 9px;
+      border-radius: 5px;
+      border: 1px solid;
+      width: fit-content;
+    }
+    .method-get    { color: #34d399; background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.25); }
+    .method-post   { color: #60a5fa; background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.25); }
+    .method-delete { color: #f87171; background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.25); }
+
+    .endpoint-path {
+      font-size: 13px;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+    .endpoint-path .param { color: var(--accent); }
+    .endpoint-desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .endpoint-status {
+      font-size: 11px;
+    }
+    .status-live { color: var(--green); }
+    .status-planned { color: var(--muted); }
+
+    /* ── STACK ── */
+    .stack-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.025);
+      font-size: 12px;
+      color: var(--text);
+      transition: border-color .2s, background .2s, transform .2s;
+      cursor: default;
+      animation: fadeSlideUp .5s ease both;
+    }
+    .pill:hover {
+      border-color: var(--border-hi);
+      background: rgba(255,255,255,0.05);
+      transform: translateY(-2px);
+    }
+    .pill-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .footer-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .footer-brand {
+      font-family: var(--bebas);
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+    .footer-copy {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 12px;
+      transition: border-color .2s, color .2s, background .2s, transform .2s;
+      background: rgba(255,255,255,0.02);
+    }
+    .footer-link:hover {
+      border-color: var(--border-hi);
+      color: var(--text);
+      background: rgba(255,255,255,0.05);
+      transform: translateY(-2px);
+    }
+    .footer-link svg { flex-shrink: 0; }
+
+    /* ── SEPARATOR LINE ── */
+    .section-sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-hi), transparent);
+      margin: 0 auto;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 680px) {
+      .table-header, .table-row {
+        grid-template-columns: 70px 1fr 1fr;
+      }
+      .table-header > *:nth-child(4),
+      .table-row   > *:nth-child(4) { display: none; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ORBS -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="wrapper nav-inner">
+      <div class="nav-logo">Seat<span>Lock</span></div>
+      <div class="nav-links">
+        <a href="#phases">Phases</a>
+        <a href="#endpoints">Endpoints</a>
+        <a href="#stack">Stack</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="wrapper">
+    <div class="hero">
+      <div class="status-badge">
+        <div class="pulse-dot"></div>
+        API Server Online
+      </div>
+
+      <h1 class="hero-title">
+        <span class="accent-word">SEAT</span>LOCK<br>API
+      </h1>
+
+      <p class="hero-subtitle">
+        A high-concurrency ticket booking backend engineered with PostgreSQL advisory locking, async I/O via asyncpg, and fully containerised with Docker.
+      </p>
+
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          v0.1.0-alpha
+        </div>
+        <div class="divider-dot"></div>
+        <div class="hero-meta-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          PostgreSQL + asyncpg
+        </div>
+        <div class="divider-dot"></div>
+        <div class="hero-meta-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Pessimistic Locking
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-sep"></div>
+
+  <!-- PHASES -->
+  <div class="wrapper" id="phases">
+    <section>
+      <div class="section-label">// Build Phases</div>
+      <div class="section-title">Project Roadmap</div>
+
+      <div class="cards-grid">
+
+        <!-- Phase 1 -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon">🗄️</div>
+            <span class="tag tag-progress">In Progress</span>
+          </div>
+          <div class="card-title">Phase 01 — Schema Design</div>
+          <p class="card-desc">Normalised PostgreSQL schema with carefully scoped relationships between venues, events, seats, and booking records.</p>
+          <div class="card-divider"></div>
+          <ul class="card-items">
+            <li>Users, Events & Venue tables</li>
+            <li>Seat inventory modelling</li>
+            <li>Booking & reservation schema</li>
+            <li>Migration management</li>
+          </ul>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon">🔒</div>
+            <span class="tag tag-progress">In Progress</span>
+          </div>
+          <div class="card-title">Phase 02 — Concurrency & Locking</div>
+          <p class="card-desc">Prevents double-booking under load using PostgreSQL <code style="color:var(--accent2);font-size:11px">SELECT FOR UPDATE</code> and advisory locks with full async execution.</p>
+          <div class="card-divider"></div>
+          <ul class="card-items">
+            <li>Pessimistic row-level locking</li>
+            <li>Advisory lock strategies</li>
+            <li>asyncpg connection pooling</li>
+            <li>Race condition test suite</li>
+          </ul>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="card">
+          <div class="card-top">
+            <div class="card-icon">🐳</div>
+            <span class="tag tag-pending">Pending</span>
+          </div>
+          <div class="card-title">Phase 03 — Containerization</div>
+          <p class="card-desc">Production-grade Docker setup with multi-stage builds, compose orchestration, and environment-aware config layers.</p>
+          <div class="card-divider"></div>
+          <ul class="card-items">
+            <li>Multi-stage Dockerfile</li>
+            <li>docker-compose orchestration</li>
+            <li>Health checks & restart policy</li>
+            <li>Env-based secrets management</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="section-sep"></div>
+
+  <!-- ENDPOINTS -->
+  <div class="wrapper" id="endpoints">
+    <section>
+      <div class="section-label">// REST Interface</div>
+      <div class="section-title">API Endpoints</div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <span>Method</span>
+          <span>Path</span>
+          <span>Description</span>
+          <span>Status</span>
+        </div>
+
+        <div class="table-row" style="animation-delay:.05s">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/</span>
+          <span class="endpoint-desc">Landing page (HTMLResponse)</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.10s">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/health</span>
+          <span class="endpoint-desc">Service health check</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.15s">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/events</span>
+          <span class="endpoint-desc">List all events</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.20s">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/events/<span class="param">{id}</span>/seats</span>
+          <span class="endpoint-desc">Available seats for event</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.25s">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/bookings</span>
+          <span class="endpoint-desc">Create booking (locked)</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.30s">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/bookings/<span class="param">{id}</span></span>
+          <span class="endpoint-desc">Retrieve booking details</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.35s">
+          <span class="method method-delete">DELETE</span>
+          <span class="endpoint-path">/bookings/<span class="param">{id}</span></span>
+          <span class="endpoint-desc">Cancel & release seat</span>
+          <span class="endpoint-status status-live">● Live</span>
+        </div>
+        <div class="table-row" style="animation-delay:.40s">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/users</span>
+          <span class="endpoint-desc">Register new user</span>
+          <span class="endpoint-status status-planned">◌ Planned</span>
+        </div>
+        <div class="table-row" style="animation-delay:.45s">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/events</span>
+          <span class="endpoint-desc">Create event (admin)</span>
+          <span class="endpoint-status status-planned">◌ Planned</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="section-sep"></div>
+
+  <!-- STACK -->
+  <div class="wrapper" id="stack">
+    <section>
+      <div class="section-label">// Technology</div>
+      <div class="section-title">Tech Stack</div>
+
+      <div class="stack-row">
+        <div class="pill" style="animation-delay:.05s"><div class="pill-dot" style="background:#00e5ff"></div>FastAPI</div>
+        <div class="pill" style="animation-delay:.10s"><div class="pill-dot" style="background:#336791"></div>PostgreSQL</div>
+        <div class="pill" style="animation-delay:.15s"><div class="pill-dot" style="background:#7c3aed"></div>asyncpg</div>
+        <div class="pill" style="animation-delay:.20s"><div class="pill-dot" style="background:#22c55e"></div>Python 3.11</div>
+        <div class="pill" style="animation-delay:.25s"><div class="pill-dot" style="background:#2496ed"></div>Docker</div>
+        <div class="pill" style="animation-delay:.30s"><div class="pill-dot" style="background:#f97316"></div>Pydantic v2</div>
+        <div class="pill" style="animation-delay:.35s"><div class="pill-dot" style="background:#eab308"></div>SQLAlchemy Core</div>
+        <div class="pill" style="animation-delay:.40s"><div class="pill-dot" style="background:#64748b"></div>Alembic</div>
+        <div class="pill" style="animation-delay:.45s"><div class="pill-dot" style="background:#ef4444"></div>Uvicorn</div>
+        <div class="pill" style="animation-delay:.50s"><div class="pill-dot" style="background:#a78bfa"></div>pytest-asyncio</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="section-sep"></div>
+
+  <!-- FOOTER -->
+  <div class="wrapper">
+    <footer>
+      <div class="footer-inner">
+        <div class="footer-left">
+          <div class="footer-brand">SeatLock API</div>
+          <div class="footer-copy">Built by Shubhtistic &nbsp;·&nbsp; MIT License</div>
+        </div>
+        <div class="footer-links">
+          <!-- GitHub -->
+          <a class="footer-link" href="https://github.com/Shubhtistic" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            Shubhtistic
+          </a>
+          <!-- LinkedIn -->
+          <a class="footer-link" href="https://linkedin.com/in/shubhtistic" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            shubhtistic
+          </a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Intersection Observer for staggered card/row reveals
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.animationPlayState = 'running';
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.card, .table-row, .pill').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      io.observe(el);
+    });
+
+    // Live clock in status badge (optional subtle touch)
+    const badge = document.querySelector('.status-badge');
+    if (badge) {
+      const tick = () => {
+        const t = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        badge.childNodes[badge.childNodes.length - 1].textContent = ` API Server Online · ${t}`;
+      };
+      tick();
+      setInterval(tick, 1000);
+    }
+  </script>
+</body>
+</html>
