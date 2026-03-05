@@ -15,3 +15,13 @@ class DB_CREDENTIALS(BaseSettings):
 
 
 database_settings = DB_CREDENTIALS()
+
+
+class JWT_SETTINGS(BaseSettings):
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+
+jwt_settings = JWT_SETTINGS()
