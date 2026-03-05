@@ -5,7 +5,7 @@ from jose import JWTError
 from fastapi import HTTPException, status
 
 
-def encode_jwt(data: dict) -> str:
+def create_jwt_token(data: dict) -> str:
     data_copy = data.copy()
     data_copy["exp"] = datetime.now(timezone.utc) + timedelta(
         minutes=jwt_settings.ACCESS_TOKEN_EXPIRE_MINUTES
