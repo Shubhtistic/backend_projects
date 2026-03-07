@@ -3,6 +3,7 @@ from app.config import jwt_settings
 from jose import jwt
 from jose import JWTError
 from fastapi import HTTPException, status
+from uuid_utils import uuid7
 
 
 def create_jwt_token(data: dict) -> str:
@@ -10,6 +11,7 @@ def create_jwt_token(data: dict) -> str:
     data_copy["exp"] = datetime.now(timezone.utc) + timedelta(
         minutes=jwt_settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
+    data_copy["jti"] = str(uuid7())
 
     try:
         res = jwt.encode(
