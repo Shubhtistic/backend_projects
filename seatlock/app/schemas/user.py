@@ -14,5 +14,5 @@ class CreateUser(BaseUser):
     password: str
 
 
-class ReturnUser(BaseModel):
+class ReturnUser(BaseUser):
     pass
