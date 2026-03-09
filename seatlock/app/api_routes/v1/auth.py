@@ -41,7 +41,7 @@ async def register_user(user_data: CreateUser, db: DbSessionDep):
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    return new_user
+    return user_data
 
 
 @router.post("/login")
