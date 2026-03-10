@@ -16,3 +16,15 @@ class CreateUser(BaseUser):
 
 class ReturnUser(BaseUser):
     pass
+
+
+###############################
+
+
+# Refresh Token
+class RefreshTokenReq(BaseModel):
+    refresh_token: str
+
+
+class LogoutRequest(RefreshTokenReq):
+    access_token: str
