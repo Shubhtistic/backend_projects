@@ -2,14 +2,15 @@ from enum import Enum
 from sqlmodel import SQLModel, Field, Column, DateTime, Relationship, ARRAY, String
 from sqlalchemy import Enum as SAEnum
 from datetime import datetime, timezone, timedelta
-from uuid import uuid4, UUID
+from uuid_utils import uuid7
+from uuid import UUID
 from pydantic import EmailStr
 
 from app.schemas.enums import ShipmentStatus, Status
 
 
 class Account(SQLModel, table=True):
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    id: UUID = Field(default_factory=uuid7, primary_key=True)
     name: str = Field(max_length=50)
     email: EmailStr = Field(unique=True, index=True)
     hashed_password: str
@@ -19,6 +20,10 @@ class Account(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True)),
     )
+    is_active: bool = Field(default=True)
+    # is the user active or banned
+    # we can use this as foreign key also
+    # is user is banned then user as a seller and as a delivery agent will also be banned
 
     seller: "Seller" = Relationship(back_populates="account")
     delivery_partner: "DeliveryPartner" = Relationship(back_populates="account")
@@ -29,6 +34,7 @@ class Account(SQLModel, table=True):
 
 class Seller(SQLModel, table=True):
     seller_id: UUID = Field(foreign_key="account.id", primary_key=True)
+    # primary key has an idex by default
 
     # when did they became a seller
     created_at: datetime = Field(
@@ -39,7 +45,8 @@ class Seller(SQLModel, table=True):
         default=Status.Pending,
         sa_column=Column(SAEnum(Status, name="seller_status_enum"), nullable=False),
     )
-    seller_address: str = Field(nullable=False)
+    seller_address: str
+    seller_zip_code: str
     account: Account = Relationship(back_populates="seller")
 
     shipment: list["Shipment"] = Relationship(back_populates="seller")
@@ -72,10 +79,11 @@ class DeliveryPartner(SQLModel, table=True):
 class Shipment(SQLModel, table=True):
     __tablename__ = "shipment"  # if not mentioned defaults to class name in lowercase
 
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    id: UUID = Field(default_factory=uuid7, primary_key=True)
     content: str = Field(max_length=50)
     weight: float
-    destination: int
+    destination_address: str
+    destination_zip: str
     status: ShipmentStatus = Field(
         default=ShipmentStatus.Pending,
         sa_column=Column(
@@ -90,9 +98,9 @@ class Shipment(SQLModel, table=True):
     # # sa_column tells sqlmodel to use a specific SQLAlchemy column type
     # DateTime(timezone=True) creates a 'TIMESTAMPTZ' column in Postgres
 
-    seller_id: UUID = Field(foreign_key="seller.seller_id")
-    delivery_partner_id: UUID = Field(
-        foreign_key="delivery_partner.delivery_partner_id"
+    seller_id: UUID = Field(foreign_key="seller.seller_id", index=True)
+    delivery_partner_id: UUID | None = Field(
+        default=None, foreign_key="delivery_partner.delivery_partner_id", index=True
     )
 
     # relationship
@@ -105,13 +113,13 @@ class Shipment(SQLModel, table=True):
 
 class ShipmentEvent(SQLModel, table=True):
     __tablename__ = "shipment_event"
-    event_id: UUID = Field(default_factory=uuid4, primary_key=True)
-    shipment_id: UUID = Field(foreign_key="shipment.id")
+    event_id: UUID = Field(default_factory=uuid7, primary_key=True)
+    shipment_id: UUID = Field(foreign_key="shipment.id", index=True)
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
-    location: int
+    current_location: str
     description: str | None = Field(default=None)
 
     shipment: "Shipment" = Relationship(back_populates="timeline")
@@ -120,7 +128,7 @@ class ShipmentEvent(SQLModel, table=True):
 class RefreshToken(SQLModel, table=True):
     __tablename__ = "refresh_token"
 
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    id: UUID = Field(default_factory=uuid7, primary_key=True)
 
     account_id: UUID = Field(foreign_key="account.id", index=True)
 
