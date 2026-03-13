@@ -39,7 +39,7 @@ class Seller(SQLModel, table=True):
         default=Status.Pending,
         sa_column=Column(SAEnum(Status, name="seller_status_enum"), nullable=False),
     )
-
+    seller_address: str = Field(nullable=False)
     account: Account = Relationship(back_populates="seller")
 
     shipment: list["Shipment"] = Relationship(back_populates="seller")
@@ -98,6 +98,23 @@ class Shipment(SQLModel, table=True):
     # relationship
     seller: "Seller" = Relationship(back_populates="shipment")
     delivery_partner: "DeliveryPartner" = Relationship(back_populates="shipment")
+    timeline: list["ShipmentEvent"] = Relationship(
+        back_populates="shipment", sa_relationship_kwargs={"cascade": "all, delete"}
+    )
+
+
+class ShipmentEvent(SQLModel, table=True):
+    __tablename__ = "shipment_event"
+    event_id: UUID = Field(default_factory=uuid4, primary_key=True)
+    shipment_id: UUID = Field(foreign_key="shipment.id")
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    location: int
+    description: str | None = Field(default=None)
+
+    shipment: "Shipment" = Relationship(back_populates="timeline")
 
 
 class RefreshToken(SQLModel, table=True):
@@ -126,5 +143,6 @@ Seller.model_rebuild()
 DeliveryPartner.model_rebuild()
 Shipment.model_rebuild()
 RefreshToken.model_rebuild()
+ShipmentEvent.model_rebuild()
 ## we use forward reference when classes dont exist yet in that specific code
 # model rebuild tells them -> now all classes are defined , lets resolve all forward refs
