@@ -1,29 +1,37 @@
 from typing import Optional
-from app.database.db_models import ShipmentStatus
+from app.schemas.enums import ShipmentStatus
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from uuid import UUID
 
 
-class BaseShipment(BaseModel):
+class CreateShipment(BaseModel):
     content: str
-    weight: float = Field(le=25)
-    destination: int
+    weight: float
+    destination_address: str
+    destination_zip: str
+    # no seller_id — comes from JWT
 
 
-class ReadShipment(BaseShipment):
-    id: UUID | str
+class ReadShipment(BaseModel):
+    id: UUID
+    content: str
+    weight: float
+    destination_address: str
+    destination_zip: str
     status: ShipmentStatus
     estimated_delivery: datetime
+    seller_id: UUID
+    delivery_partner_id: UUID | None
 
-
-class CreateShipment(BaseShipment):
-    pass
+    class Config:
+        from_attributes = True
 
 
 class UpdateShipment(BaseModel):
-    content: Optional[str]
-    weight: Optional[float]
-    destination: Optional[int]
-    status: Optional[ShipmentStatus]
-    estimated_delivery: Optional[datetime]
+    content: Optional[str] = None
+    weight: Optional[float] = None
+    destination_address: Optional[str] = None
+    destination_zip: Optional[str] = None
+    estimated_delivery: Optional[datetime] = None
+    # no status — updated via dedicated endpoint

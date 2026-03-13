@@ -120,6 +120,7 @@ class ShipmentEvent(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
     current_location: str
+    current_location_zip: str
     description: str | None = Field(default=None)
 
     shipment: "Shipment" = Relationship(back_populates="timeline")

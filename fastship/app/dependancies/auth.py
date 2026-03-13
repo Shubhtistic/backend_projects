@@ -31,13 +31,18 @@ async def current_user(db: DbSessionDep, token: str = Depends(oauth2)):
         )
 
     # single DB hit
-    qry = select(Account).where(Account.id == account_id)
-    account = (await db.execute(qry)).scalar_one_or_none()
+    qry = select(Account.id, Account.is_active).where(Account.id == account_id)
+    account = (await db.execute(qry)).one_or_none()
 
     if account is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User does not exist",
+        )
+    if not account.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Banned/Bad User",
         )
 
     return AuthUser(account=account, roles=roles)
