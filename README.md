@@ -4,11 +4,6 @@
 
 This repository serves as a centralized sandbox for developing and validating specific backend architectures, API standards, and database designs before they are integrated into larger production systems. It focuses on clean code principles, scalability, and security best practices using **Python, FastAPI, and Flask**.
 
-## Project Index
-
-| Project Name | Description | Tech Stack | Source |
-| :--- | :--- | :--- | :--- |
-| **FastShip** | A high-performance e-commerce API implementing standard RESTful patterns, JWT authentication, and relational data modeling. | Python, FastAPI, SQLModel | [View Project](./fastship) |
 
 ---
 
